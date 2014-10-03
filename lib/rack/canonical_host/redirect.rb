@@ -18,12 +18,12 @@ module Rack
         @env = env
         @host = host
         @force_ssl = options[:force_ssl]
-        @ignore = Array(options[:ignore])
         @if = Array(options[:if])
+        @unless = Array(options[:unless])
       end
 
       def canonical?
-        (known? && ssl?) || ignored? || !conditions_match?
+        (known? && ssl?) || !if_conditions_match? || unless_conditions_match?
       end
 
       def response
@@ -41,15 +41,17 @@ module Rack
         !@force_ssl || request_uri.scheme == "https"
       end
 
-      def ignored?
-        @ignore && @ignore.include?(request_uri.host)
-      end
-
-      def conditions_match?
+      def if_conditions_match?
         return true unless @if.size > 0
         @if.include?( request_uri.host ) || any_regexp_match?( @if, request_uri.host )
       end
-      private :conditions_match?
+      private :if_conditions_match?
+
+      def unless_conditions_match?
+        return false unless @unless.size > 0
+        @unless.include?( request_uri.host ) || any_regexp_match?( @unless, request_uri.host )
+      end
+      private :unless_conditions_match?
 
       def any_regexp_match?( regexp_array, string )
         regexp_array.any?{ |r| string[r] }
